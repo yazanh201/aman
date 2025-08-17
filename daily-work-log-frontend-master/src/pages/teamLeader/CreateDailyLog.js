@@ -7,7 +7,71 @@ import { logService } from '../../services/apiService';
 import { toast } from 'react-toastify';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import * as fileService from '../../services/fileService'; // 👈 חובה
+
+const pad2 = (n) => String(n).padStart(2, '0');
+
+/** ---------- פורמט חדש: Select אחד ל-HH:MM ברבעי שעה + Select לשניות ---------- */
+const QuarterHourSelectTimePicker = ({ label, value, onChange }) => {
+  // value הוא Date
+  const h = value ? value.getHours() : 0;
+  const m = value ? value.getMinutes() : 0;
+  const s = value ? value.getSeconds() : 0;
+
+  // מייצר אפשרויות HH:MM ב-15 דק
+  const hhmmOptions = [];
+  for (let hour = 0; hour < 24; hour++) {
+    [0, 15, 30, 45].forEach((min) => {
+      hhmmOptions.push({ label: `${pad2(hour)}:${pad2(min)}`, hour, min });
+    });
+  }
+
+  const seconds = Array.from({ length: 60 }, (_, i) => i);
+
+  const handleHHMMChange = (e) => {
+    const [HH, MM] = e.target.value.split(':').map(Number);
+    const next = value ? new Date(value) : new Date();
+    next.setHours(HH, MM, s, 0);
+    onChange(next);
+  };
+
+  const handleSecChange = (e) => {
+    const sec = Number(e.target.value);
+    const next = value ? new Date(value) : new Date();
+    next.setSeconds(sec);
+    next.setMilliseconds(0);
+    onChange(next);
+  };
+
+  const currentHHMM = `${pad2(h)}:${pad2(m - (m % 15))}`; // מעגל ל-רבע שעה הקרוב מטה להצגה
+
+  return (
+    <Form.Group className="mb-3">
+      <Form.Label>{label}</Form.Label>
+      <Row className="g-2">
+        <Col xs={8}>
+          <Form.Select value={currentHHMM} onChange={handleHHMMChange}>
+            {hhmmOptions.map(({ label, hour, min }) => (
+              <option key={`${hour}-${min}`} value={`${pad2(hour)}:${pad2(min)}`}>
+                {label}
+              </option>
+            ))}
+          </Form.Select>
+          {/* <div className="form-text">בחירה בקפיצות של רבע שעה</div> */}
+        </Col>
+        <Col xs={4}>
+          {/* <Form.Select value={s} onChange={handleSecChange}>
+            {seconds.map((sec) => (
+              <option key={sec} value={sec}>
+                {pad2(sec)} שניות
+              </option>
+            ))}
+          </Form.Select>
+          <div className="form-text">שניות</div> */}
+        </Col>
+      </Row>
+    </Form.Group>
+  );
+};
 
 const CreateDailyLog = () => {
   const navigate = useNavigate();
@@ -25,7 +89,8 @@ const CreateDailyLog = () => {
         return !startTime || !value || value > startTime;
       }),
     workDescription: Yup.string().required('יש להזין תיאור עבודה'),
-    deliveryCertificate: Yup.mixed().required('יש לצרף תעודת משלוח')
+    deliveryCertificate: Yup.mixed().nullable(),
+    workPhotos: Yup.mixed().nullable()
   });
 
   const initialValues = {
@@ -35,31 +100,39 @@ const CreateDailyLog = () => {
     startTime: new Date(new Date().setHours(8, 0, 0, 0)),
     endTime: new Date(new Date().setHours(17, 0, 0, 0)),
     workDescription: '',
-    deliveryCertificate: null
+    deliveryCertificate: null,
+    workPhotos: []
   };
-
-  const minSelectableTime = new Date();
-  minSelectableTime.setHours(7, 0, 0, 0);
-  const maxSelectableTime = new Date();
-  maxSelectableTime.setHours(20, 0, 0, 0);
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
+      const { deliveryCertificate, workPhotos, ...restValues } = values;
+
       const formattedValues = {
-        ...values,
+        ...restValues,
         date: new Date(values.date).toISOString(),
         startTime: new Date(values.startTime).toISOString(),
         endTime: new Date(values.endTime).toISOString()
       };
 
-      const response = await logService.createLog(formattedValues);
-      const logId = response.data._id;
+      const formData = new FormData();
+      Object.keys(formattedValues).forEach(key => {
+        if (key === 'employees') {
+          formData.append(key, JSON.stringify(formattedValues[key]));
+        } else {
+          formData.append(key, formattedValues[key]);
+        }
+      });
 
-      if (values.deliveryCertificate) {
-        const formData = new FormData();
-        formData.append('certificate', values.deliveryCertificate);
-        await fileService.uploadCertificate(logId, formData);
+      if (deliveryCertificate) {
+        formData.append('deliveryCertificate', deliveryCertificate);
       }
+
+      if (workPhotos && workPhotos.length > 0) {
+        workPhotos.forEach(photo => formData.append('workPhotos', photo));
+      }
+
+      await logService.createLog(formData);
 
       toast.success('דו"ח עבודה יומי נוצר בהצלחה');
       navigate('/');
@@ -122,7 +195,7 @@ const CreateDailyLog = () => {
                         value={values.project}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        isInvalid={touched.project && errors.project}
+                        isInvalid={touched.project && !!errors.project}
                       />
                     </Form.Group>
                   </Col>
@@ -165,40 +238,26 @@ const CreateDailyLog = () => {
 
                 <Row>
                   <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>שעת התחלה</Form.Label>
-                      <DatePicker
-                        selected={values.startTime}
-                        onChange={(time) => setFieldValue('startTime', time)}
-                        showTimeSelect
-                        showTimeSelectOnly
-                        timeIntervals={15}
-                        timeCaption="שעה"
-                        dateFormat="HH:mm"
-                        timeFormat="HH:mm"
-                        minTime={minSelectableTime}
-                        maxTime={maxSelectableTime}
-                        className={`form-control text-end ${touched.startTime && errors.startTime ? 'is-invalid' : ''}`}
-                      />
-                    </Form.Group>
+                    {/* בחירת שעת התחלה — פורמט חדש */}
+                    <QuarterHourSelectTimePicker
+                      label="שעת התחלה"
+                      value={values.startTime}
+                      onChange={(d) => setFieldValue('startTime', d)}
+                    />
+                    {touched.startTime && errors.startTime && (
+                      <div className="invalid-feedback d-block">{errors.startTime}</div>
+                    )}
                   </Col>
                   <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>שעת סיום</Form.Label>
-                      <DatePicker
-                        selected={values.endTime}
-                        onChange={(time) => setFieldValue('endTime', time)}
-                        showTimeSelect
-                        showTimeSelectOnly
-                        timeIntervals={15}
-                        timeCaption="שעה"
-                        dateFormat="HH:mm"
-                        timeFormat="HH:mm"
-                        minTime={minSelectableTime}
-                        maxTime={maxSelectableTime}
-                        className={`form-control text-end ${touched.endTime && errors.endTime ? 'is-invalid' : ''}`}
-                      />
-                    </Form.Group>
+                    {/* בחירת שעת סיום — פורמט חדש */}
+                    <QuarterHourSelectTimePicker
+                      label="שעת סיום"
+                      value={values.endTime}
+                      onChange={(d) => setFieldValue('endTime', d)}
+                    />
+                    {touched.endTime && errors.endTime && (
+                      <div className="invalid-feedback d-block">{errors.endTime}</div>
+                    )}
                   </Col>
                 </Row>
 
@@ -211,7 +270,7 @@ const CreateDailyLog = () => {
                     value={values.workDescription}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    isInvalid={touched.workDescription && errors.workDescription}
+                    isInvalid={touched.workDescription && !!errors.workDescription}
                   />
                 </Form.Group>
 
@@ -221,29 +280,34 @@ const CreateDailyLog = () => {
                     type="file"
                     accept="image/*,.pdf"
                     onChange={(e) => setFieldValue('deliveryCertificate', e.currentTarget.files[0])}
-                    className={touched.deliveryCertificate && errors.deliveryCertificate ? 'is-invalid' : ''}
                   />
-                  {touched.deliveryCertificate && errors.deliveryCertificate && (
-                    <div className="invalid-feedback d-block">{errors.deliveryCertificate}</div>
+                </Form.Group>
+
+                <Form.Group className="mb-4">
+                  <Form.Label>צרף תמונות</Form.Label>
+                  <Form.Control
+                    type="file"
+                    name="workPhotos"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.currentTarget.files);
+                      setFieldValue('workPhotos', files);
+                    }}
+                  />
+                  {values.workPhotos.length > 0 && (
+                    <ul className="mt-2">
+                      {values.workPhotos.map((file, i) => (
+                        <li key={i}>{file.name}</li>
+                      ))}
+                    </ul>
                   )}
                 </Form.Group>
 
                 <div className="d-flex justify-content-between">
                   <Button variant="secondary" onClick={() => navigate('/')}>ביטול</Button>
                   <div>
-                    <Button
-                      variant="primary"
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="me-2"
-                    >
-                      {isSubmitting ? 'שומר...' : 'שמור כטיוטה'}
-                    </Button>
-                    <Button
-                      variant="success"
-                      type="submit"
-                      disabled={isSubmitting}
-                    >
+                    <Button variant="success" type="submit" disabled={isSubmitting}>
                       {isSubmitting ? 'שולח...' : 'שמור ושלח'}
                     </Button>
                   </div>

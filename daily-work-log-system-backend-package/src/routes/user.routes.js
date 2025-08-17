@@ -17,6 +17,8 @@ router.get('/team-leaders', isManager, userController.getTeamLeaders);
 // Get user by ID
 router.get('/:id', userController.getUserById);
 
+router.get('/by-ids', verifyToken, userController.getUsersMapByIds);
+
 // Create a new user (managers only)
 router.post(
   '/',

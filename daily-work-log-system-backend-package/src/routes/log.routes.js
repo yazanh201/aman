@@ -1,65 +1,91 @@
 const express = require('express');
-const { body, validationResult } = require('express-validator');
+const { body } = require('express-validator');
 const logController = require('../controllers/log.controller');
-const { verifyToken, isManager, isTeamLeader, isManagerOrTeamLeader } = require('../middleware/auth.middleware');
+const {
+  verifyToken,
+  isManager,
+  isTeamLeader,
+  isManagerOrTeamLeader
+} = require('../middleware/auth.middleware');
+const { uploadFields } = require('../middleware/upload.middleware');
 
 const router = express.Router();
 
-// All routes require authentication
+// 🛡 כל הנתיבים דורשים אימות
 router.use(verifyToken);
 
-// Get all logs (with filtering)
+/* -----------------------------------------------
+   📥 שליפות
+------------------------------------------------ */
+// 🔎 שליפת רשימת כל ראשי הצוות (לסינון)
+router.get('/team-leaders', isManagerOrTeamLeader, logController.getTeamLeaders);
+
+
+// 🔎 שליפת כל הדוחות עם פילטרים
 router.get('/', isManagerOrTeamLeader, logController.getAllLogs);
 
-// 🚀 New: Get logs for current team leader
-router.get('/team-leader', isTeamLeader, logController.getMyLogs);
-
-// (optional, if you still use this path for some pages)
+// 🔎 שליפת דוחות לפי ראש צוות מחובר
 router.get('/my-logs', isTeamLeader, logController.getMyLogs);
 
-// Get log by ID
-router.get('/:id', isManagerOrTeamLeader, logController.getLogById);
+// 🔎 שליפת רשימת כל ראשי הצוות (לסינון)
+router.get('/team-leaders', isManagerOrTeamLeader, logController.getTeamLeaders);
 
-// Create a new log (team leaders only)
+// 🔎 שליפת דוח לפי מזהה
+router.get('/:id', logController.getLogById);
+
+
+/* -----------------------------------------------
+   ✍️ יצירה ועדכון
+------------------------------------------------ */
+
+// ✏️ יצירת דוח חדש
 router.post(
   '/',
+  uploadFields,
   isTeamLeader,
   [
-    body('date').isISO8601().withMessage('Valid date is required'),
-    body('project').notEmpty().withMessage('Project name is required'),
-    body('employees').isArray().withMessage('Employees must be an array'),
-    body('startTime').isISO8601().withMessage('Valid start time is required'),
-    body('endTime').isISO8601().withMessage('Valid end time is required'),
-    body('workDescription').notEmpty().withMessage('Work description is required')
+    body('date').isISO8601().withMessage('נדרש תאריך חוקי'),
+    body('project').isString().notEmpty().withMessage('יש להזין פרויקט'),
+    body('employees').isString().withMessage('יש להזין עובדים כמחרוזת JSON'),
+    body('startTime').isISO8601().withMessage('שעת התחלה לא חוקית'),
+    body('endTime').isISO8601().withMessage('שעת סיום לא חוקית'),
+    body('workDescription').notEmpty().withMessage('יש להזין תיאור עבודה')
   ],
   logController.createLog
 );
 
-// Update a log (team leaders only)
+// ✏️ עדכון דוח
 router.put(
   '/:id',
+  uploadFields,
   isTeamLeader,
   [
-    body('date').optional().isISO8601().withMessage('Valid date is required'),
-    body('project').optional().notEmpty().withMessage('Project name is required'),
-    body('employees').optional().isArray().withMessage('Employees must be an array'),
-    body('startTime').optional().isISO8601().withMessage('Valid start time is required'),
-    body('endTime').optional().isISO8601().withMessage('Valid end time is required'),
-    body('workDescription').optional().notEmpty().withMessage('Work description cannot be empty')
+    body('date').optional().isISO8601().withMessage('תאריך חוקי נדרש'),
+    body('project').optional().isString().withMessage('פרויקט חייב להיות מחרוזת'),
+    body('employees').optional().isString().withMessage('עובדים צריכים להיות מחרוזת JSON'),
+    body('startTime').optional().isISO8601().withMessage('שעת התחלה לא חוקית'),
+    body('endTime').optional().isISO8601().withMessage('שעת סיום לא חוקית'),
+    body('workDescription').optional().notEmpty().withMessage('תיאור העבודה לא יכול להיות ריק')
   ],
   logController.updateLog
 );
 
-// Submit a log (team leaders only)
+
+/* -----------------------------------------------
+   📤 פעולות על דוח קיים
+------------------------------------------------ */
+
+// 🚀 שליחת דוח
 router.patch('/:id/submit', isTeamLeader, logController.submitLog);
 
-// Approve a log (managers only)
+// ✅ אישור דוח
 router.patch('/:id/approve', isManager, logController.approveLog);
 
-// Delete a log
+// 🗑️ מחיקת דוח
 router.delete('/:id', isManagerOrTeamLeader, logController.deleteLog);
 
-// Export log to PDF
+// 📄 ייצוא PDF
 router.get('/:id/export-pdf', isManagerOrTeamLeader, logController.exportLogToPdf);
+
 
 module.exports = router;

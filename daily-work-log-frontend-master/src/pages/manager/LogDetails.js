@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Badge, Table, Alert, Carousel } from 'react-bootstrap';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Container, Row, Col, Card, Button, Badge, Alert } from 'react-bootstrap';
+import { useParams, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaDownload, FaCheck, FaFileDownload } from 'react-icons/fa';
 import { logService } from '../../services/apiService';
 import { toast } from 'react-toastify';
@@ -25,8 +25,8 @@ const LogDetails = () => {
       setError('');
     } catch (err) {
       console.error('Error fetching log:', err);
-      setError('Failed to load the daily log. Please try again.');
-      toast.error('Failed to load daily log');
+      setError('נכשל בטעינת הדוח');
+      toast.error('נכשל בטעינת הדוח');
     } finally {
       setLoading(false);
     }
@@ -35,64 +35,55 @@ const LogDetails = () => {
   const handleApproveLog = async () => {
     try {
       await logService.approveLog(id);
-      toast.success('Log approved successfully');
-      fetchLog(); // Refresh the log data
+      toast.success('הדוח אושר בהצלחה');
+      fetchLog();
     } catch (err) {
-      console.error('Error approving log:', err);
-      toast.error('Failed to approve log');
+      console.error('שגיאה באישור הדוח:', err);
+      toast.error('נכשל באישור הדוח');
     }
   };
 
   const handleExportToPdf = async () => {
     try {
       const response = await logService.exportLogToPdf(id);
-      
-      // Create a blob from the PDF stream
       const blob = new Blob([response.data], { type: 'application/pdf' });
-      
-      // Create a link element to download the PDF
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `daily-log-${id}.pdf`);
       document.body.appendChild(link);
       link.click();
-      
-      // Clean up
       window.URL.revokeObjectURL(url);
       document.body.removeChild(link);
-      
-      toast.success('PDF exported successfully');
+      toast.success('הייצוא ל־PDF הצליח');
     } catch (err) {
-      console.error('Error exporting PDF:', err);
-      toast.error('Failed to export PDF');
+      console.error('שגיאה ביצוא PDF:', err);
+      toast.error('נכשל ביצוא PDF');
     }
   };
 
   const getStatusBadge = (status) => {
     switch (status) {
       case 'draft':
-        return <Badge bg="secondary">Draft</Badge>;
+        return <Badge bg="secondary">טיוטה</Badge>;
       case 'submitted':
-        return <Badge bg="primary">Submitted</Badge>;
+        return <Badge bg="primary">נשלח</Badge>;
       case 'approved':
-        return <Badge bg="success">Approved</Badge>;
+        return <Badge bg="success">מאושר</Badge>;
       default:
-        return <Badge bg="secondary">Unknown</Badge>;
+        return <Badge bg="secondary">לא ידוע</Badge>;
     }
   };
 
   if (loading) {
-    return <Container><p className="text-center">Loading log details...</p></Container>;
+    return <Container><p className="text-center">טוען פרטי דוח...</p></Container>;
   }
 
   if (error) {
     return (
       <Container>
         <Alert variant="danger">{error}</Alert>
-        <Button variant="primary" onClick={() => navigate('/all-logs')}>
-          Back to All Logs
-        </Button>
+        <Button variant="primary" onClick={() => navigate('/all-logs')}>חזור לכל הדוחות</Button>
       </Container>
     );
   }
@@ -100,37 +91,27 @@ const LogDetails = () => {
   if (!log) {
     return (
       <Container>
-        <Alert variant="warning">Log not found</Alert>
-        <Button variant="primary" onClick={() => navigate('/all-logs')}>
-          Back to All Logs
-        </Button>
+        <Alert variant="warning">הדוח לא נמצא</Alert>
+        <Button variant="primary" onClick={() => navigate('/all-logs')}>חזור לכל הדוחות</Button>
       </Container>
     );
   }
 
   return (
-    <Container>
+    <Container dir="rtl">
       <Row className="mb-4">
         <Col>
           <Button variant="outline-secondary" onClick={() => navigate('/all-logs')}>
-            <FaArrowLeft className="me-1" /> Back to All Logs
+            <FaArrowLeft className="me-1" /> חזור לכל הדוחות
           </Button>
         </Col>
         <Col xs="auto">
-          <Button
-            variant="outline-secondary"
-            className="me-2"
-            onClick={handleExportToPdf}
-          >
-            <FaFileDownload className="me-1" /> Export to PDF
+          <Button variant="outline-secondary" className="me-2" onClick={handleExportToPdf}>
+            <FaFileDownload className="me-1" /> ייצוא ל־PDF
           </Button>
-          
           {log.status === 'submitted' && (
-            <Button
-              variant="success"
-              onClick={handleApproveLog}
-            >
-              <FaCheck className="me-1" /> Approve Log
+            <Button variant="success" onClick={handleApproveLog}>
+              <FaCheck className="me-1" /> אשר דוח
             </Button>
           )}
         </Col>
@@ -138,46 +119,36 @@ const LogDetails = () => {
 
       <Row className="mb-4">
         <Col>
-          <h2>Daily Work Log Details</h2>
-          <div className="d-flex align-items-center">
-            <p className="text-muted mb-0 me-2">
-              Status: {getStatusBadge(log.status)}
-            </p>
-          </div>
+          <h2>פרטי דוח עבודה יומי</h2>
+          <p className="text-muted mb-0">סטטוס: {getStatusBadge(log.status)}</p>
         </Col>
       </Row>
 
       <Card className="mb-4">
-        <Card.Header>
-          <h5 className="mb-0">General Information</h5>
-        </Card.Header>
+        <Card.Header><h5 className="mb-0">מידע כללי</h5></Card.Header>
         <Card.Body>
           <Row>
             <Col md={6}>
-              <p><strong>Date:</strong> {moment(log.date).format('MMMM D, YYYY')}</p>
-              <p><strong>Project:</strong> {log.project.name}</p>
-              <p><strong>Location:</strong> {log.project.address}</p>
+              <p><strong>תאריך:</strong> {moment(log.date).format('DD/MM/YYYY')}</p>
+              <p><strong>פרויקט:</strong> {log.project}</p>
             </Col>
             <Col md={6}>
-              <p><strong>Team Leader:</strong> {log.teamLeader.fullName}</p>
-              <p><strong>Work Hours:</strong> {moment(log.startTime).format('h:mm A')} - {moment(log.endTime).format('h:mm A')}</p>
-              <p><strong>Weather:</strong> {log.weather || 'Not specified'}</p>
+              <p><strong>ראש צוות:</strong> {log.teamLeader?.fullName}</p>
+              <p><strong>שעות עבודה:</strong> {moment(log.startTime).format('HH:mm')} - {moment(log.endTime).format('HH:mm')}</p>
             </Col>
           </Row>
         </Card.Body>
       </Card>
 
       <Card className="mb-4">
-        <Card.Header>
-          <h5 className="mb-0">Employees Present</h5>
-        </Card.Header>
+        <Card.Header><h5 className="mb-0">עובדים נוכחים</h5></Card.Header>
         <Card.Body>
           {log.employees.length === 0 ? (
-            <p className="text-muted">No employees recorded for this log</p>
+            <p className="text-muted">לא נרשמו עובדים בדוח זה</p>
           ) : (
             <ul className="list-unstyled">
-              {log.employees.map(employee => (
-                <li key={employee._id}>{employee.fullName}</li>
+              {log.employees.map((employee, index) => (
+                <li key={index}>{employee}</li>
               ))}
             </ul>
           )}
@@ -185,144 +156,100 @@ const LogDetails = () => {
       </Card>
 
       <Card className="mb-4">
-        <Card.Header>
-          <h5 className="mb-0">Work Description</h5>
-        </Card.Header>
+        <Card.Header><h5 className="mb-0">תיאור עבודה</h5></Card.Header>
         <Card.Body>
           <p>{log.workDescription}</p>
         </Card.Body>
       </Card>
 
-      <Row>
-        <Col md={6}>
-          <Card className="mb-4">
-            <Card.Header>
-              <h5 className="mb-0">Issues Encountered</h5>
-            </Card.Header>
-            <Card.Body>
-              <p>{log.issuesEncountered || 'No issues reported'}</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={6}>
-          <Card className="mb-4">
-            <Card.Header>
-              <h5 className="mb-0">Next Steps</h5>
-            </Card.Header>
-            <Card.Body>
-              <p>{log.nextSteps || 'No next steps specified'}</p>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+     <Card className="mb-4">
+  <Card.Header><h5 className="mb-0">תמונות מהשטח</h5></Card.Header>
+  <Card.Body>
+    <Row>
+      {log.workPhotos.map((photoPath, index) => {
+        const fullUrl = `http://localhost:5000/${photoPath}`;
+        return (
+          <Col md={3} key={index} className="mb-3"> {/* 🔹 אפשר גם md=3 כדי להקטין */}
+            <div
+              style={{
+                backgroundColor: '#fff',
+                padding: '8px',
+                borderRadius: '12px',
+                border: '1px solid #ddd',
+                textAlign: 'center'
+              }}
+            >
+              <a href={fullUrl} target="_blank" rel="noopener noreferrer">
+                <img
+                  src={fullUrl}
+                  alt={`תמונה ${index + 1}`}
+                  className="img-thumbnail"
+                  style={{
+                    maxWidth: '150px', // 🔹 תמונה קטנה
+                    maxHeight: '150px',
+                    objectFit: 'cover'
+                  }}
+                />
+              </a>
+            </div>
+          </Col>
+        );
+      })}
+    </Row>
+  </Card.Body>
+</Card>
 
-      {log.materialsUsed && log.materialsUsed.length > 0 && (
-        <Card className="mb-4">
-          <Card.Header>
-            <h5 className="mb-0">Materials Used</h5>
-          </Card.Header>
-          <Card.Body>
-            <Table responsive striped bordered hover>
-              <thead>
-                <tr>
-                  <th>Material</th>
-                  <th>Quantity</th>
-                  <th>Unit</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {log.materialsUsed.map((material, index) => (
-                  <tr key={index}>
-                    <td>{material.name}</td>
-                    <td>{material.quantity}</td>
-                    <td>{material.unit}</td>
-                    <td>{material.notes || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </Card.Body>
-        </Card>
-      )}
+<Card className="mb-4">
+  <Card.Header><h5 className="mb-0">תעודת משלוח</h5></Card.Header>
+  <Card.Body>
+    {log.deliveryCertificate ? (
+      <div>
+        {/* אם זה PDF או מסמך */}
+        {log.deliveryCertificate.endsWith('.pdf') ? (
+          <a
+            href={`http://localhost:5000/${log.deliveryCertificate}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-outline-primary"
+          >
+            <FaFileDownload className="me-1" /> הורד תעודת משלוח
+          </a>
+        ) : (
+          // אם זה תמונה → מוצגת קטנה (thumbnail)
+          <a
+            href={`http://localhost:5000/${log.deliveryCertificate}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              src={`http://localhost:5000/${log.deliveryCertificate}`}
+              alt="תעודת משלוח"
+              className="img-thumbnail"
+              style={{
+                maxWidth: '150px',   // 🔹 גודל קטן יותר
+                maxHeight: '150px',
+                objectFit: 'cover',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                cursor: 'pointer'
+              }}
+            />
+          </a>
+        )}
+      </div>
+    ) : (
+      <p className="text-muted">לא צורפה תעודת משלוח לדוח זה</p>
+    )}
+  </Card.Body>
+</Card>
 
-      {log.photos && log.photos.length > 0 && (
-        <Card className="mb-4">
-          <Card.Header>
-            <h5 className="mb-0">Photos</h5>
-          </Card.Header>
-          <Card.Body>
-            <Carousel>
-              {log.photos.map((photo, index) => (
-                <Carousel.Item key={index}>
-                  <img
-                    className="d-block w-100"
-                    src={photo.path}
-                    alt={`Site photo ${index + 1}`}
-                    style={{ maxHeight: '400px', objectFit: 'contain' }}
-                  />
-                  <Carousel.Caption>
-                    <p>{photo.description || `Photo ${index + 1}`}</p>
-                  </Carousel.Caption>
-                </Carousel.Item>
-              ))}
-            </Carousel>
-          </Card.Body>
-        </Card>
-      )}
 
-      {log.documents && log.documents.length > 0 && (
-        <Card className="mb-4">
-          <Card.Header>
-            <h5 className="mb-0">Documents</h5>
-          </Card.Header>
-          <Card.Body>
-            <Table responsive striped bordered hover>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Uploaded</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {log.documents.map((doc, index) => (
-                  <tr key={index}>
-                    <td>{doc.originalName}</td>
-                    <td>
-                      {doc.type === 'delivery_note' && 'Delivery Note'}
-                      {doc.type === 'receipt' && 'Receipt'}
-                      {doc.type === 'invoice' && 'Invoice'}
-                      {doc.type === 'other' && 'Other'}
-                    </td>
-                    <td>{moment(doc.uploadedAt).format('MMM D, YYYY h:mm A')}</td>
-                    <td>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        href={doc.path}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <FaDownload className="me-1" /> Download
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </Card.Body>
-        </Card>
-      )}
 
       <Card className="mb-4">
-        <Card.Header>
-          <h5 className="mb-0">Log History</h5>
-        </Card.Header>
+        <Card.Header><h5 className="mb-0">היסטוריית הדוח</h5></Card.Header>
         <Card.Body>
-          <p><strong>Created:</strong> {moment(log.createdAt).format('MMMM D, YYYY h:mm A')}</p>
-          <p><strong>Last Updated:</strong> {moment(log.updatedAt).format('MMMM D, YYYY h:mm A')}</p>
+          <p><strong>נוצר:</strong> {moment(log.createdAt).format('DD/MM/YYYY HH:mm')}</p>
+          <p><strong>עודכן לאחרונה:</strong> {moment(log.updatedAt).format('DD/MM/YYYY HH:mm')}</p>
         </Card.Body>
       </Card>
     </Container>

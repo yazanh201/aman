@@ -53,9 +53,16 @@ const Header = () => {
   };
 
   return (
-    <Navbar bg="primary" variant="dark" expand="lg" className="mb-4">
+    <Navbar bg="dark" variant="dark" expand="lg" className="mb-4">
       <Container>
-        <Navbar.Brand as={Link} to="/">מערכת יומן עבודה יומית</Navbar.Brand>
+        <Navbar.Brand as={Link} to="/">
+          <img
+            src="/amana.png"
+            alt="לוגו החברה"
+            height="65"
+            className="d-inline-block align-top"
+          />
+        </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           {user && (

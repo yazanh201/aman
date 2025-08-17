@@ -18,20 +18,20 @@ const Register = () => {
   };
 
   const validationSchema = Yup.object({
-    fullName: Yup.string().required('Full name is required'),
-    email: Yup.string().email('Invalid email').required('Email is required'),
-    password: Yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
-    role: Yup.string().required('Role is required')
+    fullName: Yup.string().required('שם מלא הוא שדה חובה'),
+    email: Yup.string().email('כתובת אימייל לא חוקית').required('האימייל הוא שדה חובה'),
+    password: Yup.string().min(6, 'סיסמה חייבת להיות לפחות 6 תווים').required('הסיסמה היא שדה חובה'),
+    role: Yup.string().required('חובה לבחור תפקיד')
   });
 
-  const handleSubmit = async (values, { setSubmitting }) => {
+  const handleFormSubmit = async (values, { setSubmitting }) => {
     setError('');
     try {
       await authService.register(values);
-      toast.success('User registered successfully!');
+      toast.success('נרשמת בהצלחה!');
       navigate('/login');
     } catch (err) {
-      const message = err.response?.data?.message || 'Registration failed';
+      const message = err.response?.data?.message || 'שגיאה בהרשמה';
       setError(message);
       toast.error(message);
     } finally {
@@ -45,17 +45,17 @@ const Register = () => {
         <Col md={6} className="mx-auto">
           <Card className="shadow-sm">
             <Card.Body className="p-5">
-              <h2 className="text-center mb-4">Create New Account</h2>
+              <h2 className="text-center mb-4">צור חשבון חדש</h2>
 
               {error && <Alert variant="danger">{error}</Alert>}
 
-              <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
+              <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleFormSubmit}>
                 {({
                   values, errors, touched, handleChange, handleBlur, handleSubmit, isSubmitting
                 }) => (
                   <Form onSubmit={handleSubmit}>
                     <Form.Group className="mb-3">
-                      <Form.Label>Full Name</Form.Label>
+                      <Form.Label>שם מלא</Form.Label>
                       <Form.Control
                         type="text"
                         name="fullName"
@@ -68,7 +68,7 @@ const Register = () => {
                     </Form.Group>
 
                     <Form.Group className="mb-3">
-                      <Form.Label>Email</Form.Label>
+                      <Form.Label>אימייל</Form.Label>
                       <Form.Control
                         type="email"
                         name="email"
@@ -81,7 +81,7 @@ const Register = () => {
                     </Form.Group>
 
                     <Form.Group className="mb-3">
-                      <Form.Label>Password</Form.Label>
+                      <Form.Label>סיסמה</Form.Label>
                       <Form.Control
                         type="password"
                         name="password"
@@ -94,20 +94,20 @@ const Register = () => {
                     </Form.Group>
 
                     <Form.Group className="mb-4">
-                      <Form.Label>Role</Form.Label>
+                      <Form.Label>תפקיד</Form.Label>
                       <Form.Select
                         name="role"
                         value={values.role}
                         onChange={handleChange}
                         onBlur={handleBlur}
                       >
-                        <option value="Team Leader">Team Leader</option>
-                        <option value="Manager">Manager</option>
+                        <option value="Team Leader">ראש צוות</option>
+                        <option value="Manager">מנהל</option>
                       </Form.Select>
                     </Form.Group>
 
                     <Button variant="primary" type="submit" disabled={isSubmitting} className="w-100">
-                      {isSubmitting ? 'Registering...' : 'Register'}
+                      {isSubmitting ? 'נרשם...' : 'הרשמה'}
                     </Button>
                   </Form>
                 )}

@@ -29,7 +29,7 @@ export const logService = {
   // Team Leader endpoints
   createLog: (logData) => api.post('/logs', logData),
   updateLog: (id, logData) => api.put(`/logs/${id}`, logData),
-  getTeamLeaderLogs: (filters) => api.get('/logs/team-leader', { params: filters }),
+  getTeamLeaderLogs: () => api.get('/logs/my-logs'), // ✅ matches your backend
   getLogById: (id) => api.get(`/logs/${id}`),
   deleteLog: (id) => api.delete(`/logs/${id}`),
   submitLog: (id) => api.put(`/logs/${id}/submit`),
@@ -37,7 +37,11 @@ export const logService = {
   // Manager endpoints
   getAllLogs: (filters) => api.get('/logs', { params: filters }),
   approveLog: (id) => api.put(`/logs/${id}/approve`),
-  exportLogToPdf: (id) => api.get(`/logs/${id}/export`, { responseType: 'blob' }),
+  exportLogToPdf: (id) => api.get(`/logs/${id}/export-pdf`, { responseType: 'blob' }),
+
+  
+  getTeamLeaders: () => api.get('/logs/team-leaders'),
+
 };
 
 // Project service functions

@@ -1,25 +1,5 @@
 const mongoose = require('mongoose');
 
-const DocumentSchema = new mongoose.Schema({
-  path: {
-    type: String,
-    required: [true, 'Document path is required']
-  },
-  originalName: {
-    type: String,
-    required: [true, 'Original file name is required']
-  },
-  type: {
-    type: String,
-    enum: ['delivery_note', 'receipt', 'invoice', 'other'],
-    default: 'delivery_note'
-  },
-  uploadedAt: {
-    type: Date,
-    default: Date.now
-  }
-});
-
 const DailyLogSchema = new mongoose.Schema(
   {
     date: {
@@ -28,14 +8,16 @@ const DailyLogSchema = new mongoose.Schema(
       index: true
     },
     project: {
-      type: String, // ✅ previously was ObjectId — now matches the form's string input
+      type: String,
       required: [true, 'Project name is required'],
       trim: true
     },
-    employees: [{
-      type: String, // ✅ from form: just a string name (not ObjectId of Employee)
-      trim: true
-    }],
+    employees: [
+      {
+        type: String,
+        trim: true
+      }
+    ],
     startTime: {
       type: Date,
       required: [true, 'Start time is required']
@@ -49,7 +31,14 @@ const DailyLogSchema = new mongoose.Schema(
       required: [true, 'Work description is required'],
       trim: true
     },
-    deliveryCertificate: DocumentSchema, // ✅ this matches the uploaded file object
+    deliveryCertificate: {
+      type: String, // 📁 path to file
+      default: null
+    },
+    workPhotos: {
+      type: [String], // 📸 array of file paths
+      default: []
+    },
     status: {
       type: String,
       enum: ['draft', 'submitted', 'approved'],
@@ -62,6 +51,11 @@ const DailyLogSchema = new mongoose.Schema(
     },
     approvedAt: {
       type: Date
+    },
+    teamLeader: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
     }
   },
   {

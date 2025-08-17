@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Table, Badge, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Table, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { FaPlus, FaEdit, FaEye, FaTrash } from 'react-icons/fa';
 import { logService } from '../../services/apiService';
@@ -56,19 +56,6 @@ const TeamLeaderDashboard = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'draft':
-        return <Badge bg="secondary">טיוטה</Badge>;
-      case 'submitted':
-        return <Badge bg="primary">נשלח</Badge>;
-      case 'approved':
-        return <Badge bg="success">מאושר</Badge>;
-      default:
-        return <Badge bg="secondary">לא ידוע</Badge>;
-    }
-  };
-
   return (
     <Container dir="rtl">
       <Row className="mb-4">
@@ -101,19 +88,17 @@ const TeamLeaderDashboard = () => {
                   <th>תאריך</th>
                   <th>פרויקט</th>
                   <th>שעות עבודה</th>
-                  <th>סטטוס</th>
                   <th>פעולות</th>
                 </tr>
               </thead>
               <tbody>
-                {logs.map((log) => (
+                {logs.slice(0, 5).map((log) => (
                   <tr key={log._id}>
                     <td>{moment(log.date).format('DD/MM/YYYY')}</td>
-                    <td>{log.project.name}</td>
+                    <td>{log.project?.name || log.project}</td>
                     <td>
                       {moment(log.startTime).format('HH:mm')} - {moment(log.endTime).format('HH:mm')}
                     </td>
-                    <td>{getStatusBadge(log.status)}</td>
                     <td>
                       <Button
                         as={Link}
@@ -127,7 +112,7 @@ const TeamLeaderDashboard = () => {
 
                       {log.status === 'draft' && (
                         <>
-                          <Button
+                          {/* <Button
                             as={Link}
                             to={`/edit-log/${log._id}`}
                             variant="outline-secondary"
@@ -135,16 +120,16 @@ const TeamLeaderDashboard = () => {
                             className="me-1"
                           >
                             <FaEdit />
-                          </Button>
+                          </Button> */}
 
-                          <Button
+                          {/* <Button
                             variant="outline-success"
                             size="sm"
                             className="me-1"
                             onClick={() => handleSubmitLog(log._id)}
                           >
                             שלח
-                          </Button>
+                          </Button> */}
 
                           <Button
                             variant="outline-danger"

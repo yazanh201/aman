@@ -11,7 +11,7 @@ const { initScheduledTasks } = require('./utils/scheduler');
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const projectRoutes = require('./routes/project.routes');
-const employeeRoutes = require('./routes/employee.routes');
+// const employeeRoutes = require('./routes/employee.routes');
 const logRoutes = require('./routes/log.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const notificationRoutes = require('./routes/notification.routes');
@@ -20,20 +20,35 @@ const notificationRoutes = require('./routes/notification.routes');
 const app = express();
 
 // Set up middleware
-app.use(helmet()); // Security headers
+// ✅ שינוי מינימלי: לאפשר טעינת משאבים חוצי-דומיין (לא חוסם תמונות/PDF)
+app.use(helmet({
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
+
 app.use(cors()); // Enable CORS for all routes
 app.use(express.json()); // Parse JSON request body
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded request body
 app.use(morgan('dev')); // HTTP request logger
 
-// Serve static files from uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// ✅ Static files (uploads) with headers that won't block cross-origin loads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  setHeaders: (res, filePath) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");              // נשאר כמו שביקשת
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");  // מונע NotSameOrigin
+    // אופציונלי: הצגה inline ל־PDF
+    if (filePath && filePath.toLowerCase().endsWith('.pdf')) {
+      res.setHeader("Content-Disposition", "inline");
+      res.setHeader("Content-Type", "application/pdf");
+    }
+  }
+}));
 
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
-app.use('/api/employees', employeeRoutes);
+// app.use('/api/employees', employeeRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);

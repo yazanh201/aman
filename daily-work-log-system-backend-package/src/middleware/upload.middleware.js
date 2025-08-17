@@ -5,8 +5,8 @@ const fs = require('fs');
 // Configure storage for photos
 const photoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../uploads/photos');
-    
+    const uploadDir = path.join(__dirname, 'uploads/photos');
+
     // Create directory if it doesn't exist
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
@@ -25,7 +25,8 @@ const photoStorage = multer.diskStorage({
 // Configure storage for documents
 const documentStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../uploads/documents');
+    const uploadDir = path.join(__dirname, '../../uploads/photos');
+
     
     // Create directory if it doesn't exist
     if (!fs.existsSync(uploadDir)) {
@@ -94,4 +95,50 @@ const uploadDocuments = multer({
 module.exports = {
   uploadPhotos,
   uploadDocuments
+};
+const combinedUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      let subfolder = 'others';
+      if (file.fieldname === 'workPhotos') {
+        subfolder = 'photos';
+      } else if (file.fieldname === 'deliveryCertificate') {
+        subfolder = 'documents';
+      }
+
+      const uploadDir = path.join(__dirname, `../uploads/${subfolder}`);
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+      const fileExt = path.extname(file.originalname);
+      cb(null, `${uniqueSuffix}${fileExt}`);
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'workPhotos') {
+      return photoFilter(req, file, cb);
+    } else if (file.fieldname === 'deliveryCertificate') {
+      return documentFilter(req, file, cb);
+    }
+    cb(new Error('Unknown field'), false);
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB max per file
+  }
+});
+
+// 📌 השורה החשובה – שילוב השדות!
+const uploadFields = combinedUpload.fields([
+  { name: 'deliveryCertificate', maxCount: 1 },
+  { name: 'workPhotos', maxCount: 10 }  // או כמה שאתה רוצה
+]);
+
+module.exports = {
+  uploadPhotos,
+  uploadDocuments,
+  uploadFields
 };

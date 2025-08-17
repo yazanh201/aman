@@ -12,6 +12,29 @@ exports.getAllUsers = async (req, res) => {
     });
   }
 };
+// Get users map by a batch of IDs: ?ids=ID1,ID2,ID3  → { "ID1": "Full Name", ... }
+exports.getUsersMapByIds = async (req, res) => {
+  try {
+    const idsParam = (req.query.ids || '').trim();
+    if (!idsParam) return res.status(200).json({}); // אין מזהים – מחזירים ריק
+
+    const ids = idsParam.split(',').map(s => s.trim()).filter(Boolean);
+    if (!ids.length) return res.status(200).json({});
+
+    const users = await User.find({ _id: { $in: ids } })
+      .select('_id fullName') // מחזירים רק מה שצריך
+      .lean();
+
+    const map = {};
+    for (const u of users) map[u._id] = u.fullName;
+
+    return res.status(200).json(map);
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || 'Some error occurred while retrieving users map'
+    });
+  }
+};
 
 // Get team leaders (for manager dashboard)
 exports.getTeamLeaders = async (req, res) => {

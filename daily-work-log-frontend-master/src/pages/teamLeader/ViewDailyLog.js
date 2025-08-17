@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Badge, Table, Alert, Carousel } from 'react-bootstrap';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FaEdit, FaArrowLeft, FaDownload, FaCheck } from 'react-icons/fa';
+import { Container, Row, Col, Card, Button, Badge, Alert } from 'react-bootstrap';
+import { useParams, useNavigate } from 'react-router-dom';
+import { FaArrowLeft } from 'react-icons/fa';
 import { logService } from '../../services/apiService';
 import { toast } from 'react-toastify';
 import moment from 'moment';
+import 'moment/locale/he';
+moment.locale('he');
 
 const ViewDailyLog = () => {
   const { id } = useParams();
@@ -24,48 +26,35 @@ const ViewDailyLog = () => {
       setLog(response.data);
       setError('');
     } catch (err) {
-      console.error('Error fetching log:', err);
-      setError('Failed to load the daily log. Please try again.');
-      toast.error('Failed to load daily log');
+      const status = err.response?.status;
+      if (status === 404) {
+        setError('הדו"ח לא נמצא. ייתכן שנמחק או שהקישור שגוי.');
+      } else if (status === 403) {
+        setError('אין לך הרשאה לצפות בדו"ח זה.');
+      } else {
+        setError('שגיאה בטעינת הדו"ח.');
+      }
+      toast.error('טעינת הדו"ח נכשלה');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmitLog = async () => {
-    try {
-      await logService.submitLog(id);
-      toast.success('Log submitted successfully');
-      fetchLog(); // Refresh the log data
-    } catch (err) {
-      console.error('Error submitting log:', err);
-      toast.error('Failed to submit log');
-    }
-  };
+  const getStatusBadge = () => {
+  return <Badge bg="primary">נשלח</Badge>;
+};
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'draft':
-        return <Badge bg="secondary">Draft</Badge>;
-      case 'submitted':
-        return <Badge bg="primary">Submitted</Badge>;
-      case 'approved':
-        return <Badge bg="success">Approved</Badge>;
-      default:
-        return <Badge bg="secondary">Unknown</Badge>;
-    }
-  };
 
   if (loading) {
-    return <Container><p className="text-center">Loading log details...</p></Container>;
+    return <Container dir="rtl"><p className="text-center">טוען את פרטי הדו"ח...</p></Container>;
   }
 
   if (error) {
     return (
-      <Container>
+      <Container dir="rtl">
         <Alert variant="danger">{error}</Alert>
         <Button variant="primary" onClick={() => navigate('/')}>
-          Back to Dashboard
+          חזרה ללוח הבקרה
         </Button>
       </Container>
     );
@@ -73,232 +62,147 @@ const ViewDailyLog = () => {
 
   if (!log) {
     return (
-      <Container>
-        <Alert variant="warning">Log not found</Alert>
+      <Container dir="rtl">
+        <Alert variant="warning">הדו"ח לא נמצא</Alert>
         <Button variant="primary" onClick={() => navigate('/')}>
-          Back to Dashboard
+          חזרה ללוח הבקרה
         </Button>
       </Container>
     );
   }
 
   return (
-    <Container>
-      <Row className="mb-4">
+    <Container dir="rtl">
+      {/* כפתורי ניווט עליונים */}
+      <Row className="mb-3">
         <Col>
           <Button variant="outline-secondary" onClick={() => navigate('/')}>
-            <FaArrowLeft className="me-1" /> Back to Dashboard
+            <FaArrowLeft className="me-1" /> חזור לכל הדוחות
           </Button>
         </Col>
       </Row>
 
+      {/* כותרת וסטטוס */}
       <Row className="mb-4">
         <Col>
-          <h2>Daily Work Log Details</h2>
-          <div className="d-flex align-items-center">
-            <p className="text-muted mb-0 me-2">
-              Status: {getStatusBadge(log.status)}
-            </p>
-            {log.status === 'draft' && (
-              <>
-                <Button
-                  variant="outline-primary"
-                  size="sm"
-                  className="me-2"
-                  as={Link}
-                  to={`/edit-log/${log._id}`}
-                >
-                  <FaEdit className="me-1" /> Edit
-                </Button>
-                <Button
-                  variant="outline-success"
-                  size="sm"
-                  onClick={handleSubmitLog}
-                >
-                  <FaCheck className="me-1" /> Submit
-                </Button>
-              </>
-            )}
-          </div>
+          <h2>פרטי דוח עבודה יומי</h2>
+          <p className="text-muted mb-0">סטטוס: {getStatusBadge(log.status)}</p>
         </Col>
       </Row>
 
+      {/* מידע כללי */}
       <Card className="mb-4">
-        <Card.Header>
-          <h5 className="mb-0">General Information</h5>
-        </Card.Header>
+        <Card.Header><h5 className="mb-0">מידע כללי</h5></Card.Header>
         <Card.Body>
           <Row>
             <Col md={6}>
-              <p><strong>Date:</strong> {moment(log.date).format('MMMM D, YYYY')}</p>
-              <p><strong>Project:</strong> {log.project.name}</p>
-              <p><strong>Location:</strong> {log.project.address}</p>
+              <p><strong>תאריך:</strong> {moment(log.date).format('DD/MM/YYYY')}</p>
+              <p><strong>פרויקט:</strong> {log.project?.name || log.project}</p>
             </Col>
             <Col md={6}>
-              <p><strong>Team Leader:</strong> {log.teamLeader.fullName}</p>
-              <p><strong>Work Hours:</strong> {moment(log.startTime).format('h:mm A')} - {moment(log.endTime).format('h:mm A')}</p>
-              <p><strong>Weather:</strong> {log.weather || 'Not specified'}</p>
+              <p><strong>ראש צוות:</strong> {log.teamLeader?.fullName || '-'}</p>
+              <p><strong>שעות עבודה:</strong> {moment(log.startTime).format('HH:mm')} - {moment(log.endTime).format('HH:mm')}</p>
             </Col>
           </Row>
         </Card.Body>
       </Card>
 
+      {/* עובדים נוכחים */}
       <Card className="mb-4">
-        <Card.Header>
-          <h5 className="mb-0">Employees Present</h5>
-        </Card.Header>
+        <Card.Header><h5 className="mb-0">עובדים נוכחים</h5></Card.Header>
         <Card.Body>
-          {log.employees.length === 0 ? (
-            <p className="text-muted">No employees recorded for this log</p>
-          ) : (
+          {log.employees?.length > 0 ? (
             <ul className="list-unstyled">
-              {log.employees.map(employee => (
-                <li key={employee._id}>{employee.fullName}</li>
+              {log.employees.map((emp, i) => (
+                <li key={i}>{emp.fullName || emp}</li>
               ))}
             </ul>
+          ) : (
+            <p className="text-muted">לא נרשמו עובדים בדוח זה</p>
           )}
         </Card.Body>
       </Card>
 
+      {/* תיאור עבודה */}
       <Card className="mb-4">
-        <Card.Header>
-          <h5 className="mb-0">Work Description</h5>
-        </Card.Header>
+        <Card.Header><h5 className="mb-0">תיאור עבודה</h5></Card.Header>
         <Card.Body>
-          <p>{log.workDescription}</p>
+          <p>{log.workDescription || 'לא צויין תיאור עבודה'}</p>
         </Card.Body>
       </Card>
 
+      {/* תמונות מהשטח */}
+<Card className="mb-4">
+  <Card.Header><h5 className="mb-0">תמונות מהשטח</h5></Card.Header>
+  <Card.Body>
+    <Row>
+      {log.workPhotos?.length > 0 ? (
+        log.workPhotos.map((photoPath, i) => {
+          const fullUrl = `http://localhost:5000/${photoPath}`;
+          return (
+            <Col xs={6} sm={4} md={3} lg={2} key={i} className="mb-3">
+              <a href={fullUrl} target="_blank" rel="noopener noreferrer">
+                <img
+                  src={fullUrl}
+                  alt={`תמונה ${i + 1}`}
+                  className="img-fluid rounded"
+                  style={{
+                    width: '100%',
+                    height: '150px', // 🔹 גובה קבוע קטן יותר
+                    objectFit: 'cover',
+                  }}
+                />
+              </a>
+            </Col>
+          );
+        })
+      ) : (
+        <p className="text-muted">לא הועלו תמונות</p>
+      )}
+    </Row>
+  </Card.Body>
+</Card>
+
+{/* תעודת משלוח */}
+{log.deliveryCertificate && (
+  <Card className="mb-4">
+    <Card.Header><h5 className="mb-0">תעודת משלוח</h5></Card.Header>
+    <Card.Body>
       <Row>
-        <Col md={6}>
-          <Card className="mb-4">
-            <Card.Header>
-              <h5 className="mb-0">Issues Encountered</h5>
-            </Card.Header>
-            <Card.Body>
-              <p>{log.issuesEncountered || 'No issues reported'}</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={6}>
-          <Card className="mb-4">
-            <Card.Header>
-              <h5 className="mb-0">Next Steps</h5>
-            </Card.Header>
-            <Card.Body>
-              <p>{log.nextSteps || 'No next steps specified'}</p>
-            </Card.Body>
-          </Card>
+        <Col xs={6} sm={4} md={3} lg={2} className="mb-3">
+          <a
+            href={`http://localhost:5000/${log.deliveryCertificate}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              src={`http://localhost:5000/${log.deliveryCertificate}`}
+              alt="תעודת משלוח"
+              className="img-fluid rounded"
+              style={{
+                width: '100%',
+                height: '150px', // 🔹 אותו גובה קטן
+                objectFit: 'cover',
+              }}
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = '/fallback-image.png';
+              }}
+            />
+          </a>
         </Col>
       </Row>
+    </Card.Body>
+  </Card>
+)}
 
-      {log.materialsUsed && log.materialsUsed.length > 0 && (
-        <Card className="mb-4">
-          <Card.Header>
-            <h5 className="mb-0">Materials Used</h5>
-          </Card.Header>
-          <Card.Body>
-            <Table responsive striped bordered hover>
-              <thead>
-                <tr>
-                  <th>Material</th>
-                  <th>Quantity</th>
-                  <th>Unit</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {log.materialsUsed.map((material, index) => (
-                  <tr key={index}>
-                    <td>{material.name}</td>
-                    <td>{material.quantity}</td>
-                    <td>{material.unit}</td>
-                    <td>{material.notes || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </Card.Body>
-        </Card>
-      )}
 
-      {log.photos && log.photos.length > 0 && (
-        <Card className="mb-4">
-          <Card.Header>
-            <h5 className="mb-0">Photos</h5>
-          </Card.Header>
-          <Card.Body>
-            <Carousel>
-              {log.photos.map((photo, index) => (
-                <Carousel.Item key={index}>
-                  <img
-                    className="d-block w-100"
-                    src={photo.path}
-                    alt={`Site photo ${index + 1}`}
-                    style={{ maxHeight: '400px', objectFit: 'contain' }}
-                  />
-                  <Carousel.Caption>
-                    <p>{photo.description || `Photo ${index + 1}`}</p>
-                  </Carousel.Caption>
-                </Carousel.Item>
-              ))}
-            </Carousel>
-          </Card.Body>
-        </Card>
-      )}
-
-      {log.documents && log.documents.length > 0 && (
-        <Card className="mb-4">
-          <Card.Header>
-            <h5 className="mb-0">Documents</h5>
-          </Card.Header>
-          <Card.Body>
-            <Table responsive striped bordered hover>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Uploaded</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {log.documents.map((doc, index) => (
-                  <tr key={index}>
-                    <td>{doc.originalName}</td>
-                    <td>
-                      {doc.type === 'delivery_note' && 'Delivery Note'}
-                      {doc.type === 'receipt' && 'Receipt'}
-                      {doc.type === 'invoice' && 'Invoice'}
-                      {doc.type === 'other' && 'Other'}
-                    </td>
-                    <td>{moment(doc.uploadedAt).format('MMM D, YYYY h:mm A')}</td>
-                    <td>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        href={doc.path}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <FaDownload className="me-1" /> Download
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </Card.Body>
-        </Card>
-      )}
-
+      {/* היסטוריית הדוח */}
       <Card className="mb-4">
-        <Card.Header>
-          <h5 className="mb-0">Log History</h5>
-        </Card.Header>
+        <Card.Header><h5 className="mb-0">היסטוריית הדוח</h5></Card.Header>
         <Card.Body>
-          <p><strong>Created:</strong> {moment(log.createdAt).format('MMMM D, YYYY h:mm A')}</p>
-          <p><strong>Last Updated:</strong> {moment(log.updatedAt).format('MMMM D, YYYY h:mm A')}</p>
+          <p><strong>נוצר:</strong> {moment(log.createdAt).format('DD/MM/YYYY HH:mm')}</p>
+          <p><strong>עודכן לאחרונה:</strong> {moment(log.updatedAt).format('DD/MM/YYYY HH:mm')}</p>
         </Card.Body>
       </Card>
     </Container>
