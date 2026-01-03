@@ -15,3 +15,6 @@ local file storage to Google Cloud Storage (GCS):
 - `server.js` – initializes GCS connection on server startup
 - `.env` – added GCP and GCS environment variables (local only)
 
+מה שצריך להוסיף ל enviroment variables "קובץ .env" :
+GCP_PROJECT_ID=amana-sys-dockered
+GCS_BUCKET_NAME=amanaphotos
