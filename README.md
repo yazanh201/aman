@@ -16,5 +16,6 @@ local file storage to Google Cloud Storage (GCS):
 - `.env` – added GCP and GCS environment variables (local only)
 
 מה שצריך להוסיף ל enviroment variables "קובץ .env" :
-GCP_PROJECT_ID=amana-sys-dockered
-GCS_BUCKET_NAME=amanaphotos
+- GCP_PROJECT_ID=amana-sys-dockered
+
+- GCS_BUCKET_NAME=amanaphotos
